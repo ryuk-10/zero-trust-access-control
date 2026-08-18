@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+ztac.db
+ztac.db-wal
+ztac.db-shm
+evaluation_results.csv
