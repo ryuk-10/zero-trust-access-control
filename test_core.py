@@ -35,6 +35,16 @@ def test_critical_flag_override():
     assert engine.decide(0.30, flags)["action"] == "DENY"   # 4+ flags -> deny
 
 
+def test_step_up_policy():
+    # v1.3.0: a single high-severity flag forces at least MFA even on a low score.
+    d = engine.decide(0.30, ["PRIVILEGE_ESCALATION"])
+    assert d["action"] == "MFA_REQUIRED" and d["rule"] == "STEP_UP_HIGH_SEVERITY"
+    assert engine.decide(0.30, ["BULK_DATA_ACCESS"])["action"] == "MFA_REQUIRED"
+    # A non-high-severity flag on a low score stays ALLOW (no over-blocking).
+    assert engine.decide(0.30, ["ABNORMAL_HOUR"])["action"] == "ALLOW"
+    assert engine.decide(0.30, [])["action"] == "ALLOW"
+
+
 def test_boosters_add_up_and_cap():
     assert engine.booster_total([]) == 0.0
     assert engine.booster_total(["NEW_DEVICE"]) == 0.25
@@ -90,7 +100,9 @@ def test_reproducible_detection():
     fpr = fp / (fp + tn)
     print(f"recall={recall:.4f} precision={precision:.4f} fpr={fpr:.4f} "
           f"(tp={tp} fp={fp} fn={fn} tn={tn})")
-    assert tp >= 397 and fn <= 3     # ~398/400 = 99.5% detection
+    # v1.3.0 step-up policy catches the two privilege-escalation attacks that
+    # previously slipped through, taking detection from 398/400 to 400/400.
+    assert tp >= 398 and fn <= 2     # 400/400 with a small margin
     assert precision == 1.0          # no false positives -> 100% precision
     assert fpr == 0.0                # 0% false-positive rate
 

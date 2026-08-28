@@ -135,6 +135,9 @@ def decide(risk_score, flags=None):
     if len(flags) >= config.CRITICAL_FLAG_COUNT:
         return {'action': 'DENY', 'risk_level': 'HIGH', 'risk_score': round(risk_score, 4), 'rule': 'CRITICAL_MULTI_SIGNAL'}
     if risk_score < config.ALLOW_THRESHOLD:
+        # Step-up override: a single high-severity flag forces at least MFA.
+        if getattr(config, 'STEP_UP_ON_HIGH_SEVERITY', False) and any(f in config.STEP_UP_FLAGS for f in flags):
+            return {'action': 'MFA_REQUIRED', 'risk_level': 'MEDIUM', 'risk_score': round(risk_score, 4), 'rule': 'STEP_UP_HIGH_SEVERITY'}
         return {'action': 'ALLOW', 'risk_level': 'LOW', 'risk_score': round(risk_score, 4)}
     elif risk_score <= config.DENY_THRESHOLD:
         return {'action': 'MFA_REQUIRED', 'risk_level': 'MEDIUM', 'risk_score': round(risk_score, 4)}

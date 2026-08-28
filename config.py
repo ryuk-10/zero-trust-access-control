@@ -39,6 +39,14 @@ BOOSTER_WEIGHTS = {'NEW_DEVICE': 0.25, 'NEW_LOCATION': 0.25, 'BULK_DATA_ACCESS':
 
 # ---- Hard override: this many flags at once = automatic DENY -----------------
 CRITICAL_FLAG_COUNT = 4     # 4+ independent red flags -> DENY, whatever the score
+
+# ---- Step-up policy (v1.3.0): a single high-severity flag forces at least MFA ----
+# Closes part of the 'low-and-slow' evasion gap: an attacker who mimics normal
+# behaviour but still touches a sensitive endpoint (admin / bulk export) no longer
+# slips through on a low score. Normal traffic never raises these flags, so the
+# false-positive rate is unaffected.
+STEP_UP_ON_HIGH_SEVERITY = True
+STEP_UP_FLAGS = ['PRIVILEGE_ESCALATION', 'BULK_DATA_ACCESS']
 MAX_REQUESTS_PER_MINUTE = 30  # above this, the HIGH_REQUEST_RATE flag fires
 
 # ---- Keyword lists used to classify an endpoint from its URL ----------------

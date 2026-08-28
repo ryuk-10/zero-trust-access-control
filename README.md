@@ -17,16 +17,19 @@ Measured on 2,400 requests (2,000 legitimate + 400 attacks, across 20 users):
 
 | Metric | Value |
 |---|---|
-| Detection rate (recall) | **99.5%** (398 / 400 attacks) |
+| Detection rate (recall) | **100%** (400 / 400 attacks) |
 | Precision | **100%** |
 | False-positive rate | **0%** (0 / 2,000 legitimate) |
-| F1 score | **0.997** |
+| F1 score | **1.000** |
 | Per-request scoring latency | **~6–8 ms** (well inside the 50 ms budget) |
 
 Per-attack-type detection: credential stuffing 100% · insider threat 100% · impossible travel
-100% · data exfiltration 100% · privilege escalation 97.5%.
+100% · data exfiltration 100% · privilege escalation 100%.
 
-*These figures come from a controlled synthetic evaluation; a diverse, real deployment would be
+*The dissertation baseline was 99.5% (398/400) — tag `v1.1.0`. The v1.3.0 step-up policy
+(a single high-severity flag forces MFA) catches the two previously-missed privilege-escalation
+attacks, taking detection to 400/400 with no change to precision or the false-positive rate.
+These figures come from a controlled synthetic evaluation; a diverse, real deployment would be
 expected to show a higher (non-zero) false-positive rate.*
 
 ## How it decides
@@ -56,9 +59,13 @@ privilege escalation, high request rate.
 | `engine.py` | Feature extraction, risk scoring, the ALLOW/MFA/DENY decision, and the synthetic-data generators |
 | `app.py` | Flask web layer + Policy Enforcement Point (`require_auth`) |
 | `evaluate.py` | Reproducible offline accuracy + latency evaluation over 2,400 requests |
+| `analyze.py` | Deeper analysis: ROC/PR-AUC, threshold sweep, weight grid-search, evasion test |
+| `benchmark_models.py` | Compares Isolation Forest vs Local Outlier Factor vs One-Class SVM |
 | `demo.sh` | Live demo: 5 normal + 5 attack requests through the running system |
 | `run.sh` / `stop.sh` | Start / stop Keycloak and the Flask app |
 | `test_core.py` | Unit tests + a reproducibility regression |
+
+The Flask app also serves a live audit dashboard at **`/dashboard`** (no external assets).
 
 ## Quick start
 
@@ -97,9 +104,18 @@ The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [
 - **`Dockerfile` + `docker-compose.yml`** — bring the stack up locally with
   `docker compose up --build` (app on :5001, Keycloak on :8080). You still need to create
   the Keycloak realm/client/user for the JWT-protected routes.
+- **Step-up policy (v1.3.0)** — `config.STEP_UP_ON_HIGH_SEVERITY` makes a single
+  high-severity flag (privilege escalation / bulk export) force at least MFA. This lifted
+  adversarial evasion detection from 0/400 to 240/400 and main detection to 400/400, with no
+  effect on the false-positive rate.
+- **Audit dashboard (v1.3.0)** — `GET /dashboard`, a self-contained live view of decisions
+  and alerts.
+- **`benchmark_models.py` (v1.3.0)** — model comparison. Honest finding: on the features
+  alone, LOF and One-Class SVM reach a higher ROC-AUC than Isolation Forest (1.000 vs 0.937);
+  the shipped system closes that gap with its rule boosters. Flagged as future work.
 
-Honest finding from `analyze.py`: attacks that mimic a user's normal behaviour and only trip a
-single endpoint flag currently evade detection — closing that gap is on the roadmap.
+Remaining honest gap: evasive attacks that raise *no* flag at all (mimicking a normal endpoint)
+still slip through — closing that needs behavioural sequence / velocity modelling (roadmap).
 
 ## License
 

@@ -262,6 +262,97 @@ def export_documents():
 # GET /api/admin/users (PROTECTED): triggers the PRIVILEGE_ESCALATION flag.
 def admin_users():
     return jsonify({'users': ['alice', 'bob'], 'decision': g.decision})
+
+
+# -----------------------------------------------------------------------------
+# Audit dashboard (v1.3.0): a single self-contained HTML page that visualises the
+# audit trail. It has NO external dependencies (no CDN, no build step) - the page
+# just polls the existing /audit/stats, /audit/logs and /audit/alerts JSON
+# endpoints every few seconds and redraws. Open http://localhost:5001/dashboard.
+# -----------------------------------------------------------------------------
+_DASHBOARD_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zero-Trust Audit Dashboard</title>
+<style>
+  :root{--bg:#0f1420;--card:#171e2e;--line:#26304a;--fg:#e7ecf5;--mut:#8a97b1;
+        --allow:#2ecc71;--mfa:#f1c40f;--deny:#e74c3c;--accent:#4aa3ff}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);
+    font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;
+    align-items:baseline;gap:12px} header h1{font-size:18px;margin:0;font-weight:600}
+  header .sub{color:var(--mut);font-size:12px} main{padding:20px 24px;max-width:1100px;margin:0 auto}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .card .n{font-size:28px;font-weight:700} .card .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .allow .n{color:var(--allow)} .mfa .n{color:var(--mfa)} .deny .n{color:var(--deny)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:26px 0 10px}
+  table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--mut);font-weight:600} td.mono{font-variant-numeric:tabular-nums}
+  .pill{padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;display:inline-block}
+  .p-ALLOW{background:rgba(46,204,113,.15);color:var(--allow)}
+  .p-MFA_REQUIRED{background:rgba(241,196,15,.15);color:var(--mfa)}
+  .p-DENY{background:rgba(231,76,60,.15);color:var(--deny)}
+  .flags{color:var(--mut);font-size:12px} .empty{color:var(--mut);padding:14px 10px}
+  footer{color:var(--mut);font-size:12px;padding:10px 24px 30px}
+</style></head>
+<body>
+<header><h1>Zero-Trust Audit Dashboard</h1>
+  <span class="sub">live view of every scored request &middot; refreshes every 4s</span></header>
+<main>
+  <div class="cards">
+    <div class="card"><div class="k">Total requests</div><div class="n" id="c-total">-</div></div>
+    <div class="card allow"><div class="k">Allowed</div><div class="n" id="c-allow">-</div></div>
+    <div class="card mfa"><div class="k">Step-up (MFA)</div><div class="n" id="c-mfa">-</div></div>
+    <div class="card deny"><div class="k">Denied</div><div class="n" id="c-deny">-</div></div>
+  </div>
+  <h2>Recent requests</h2>
+  <table><thead><tr><th>#</th><th>Time</th><th>User</th><th>Endpoint</th>
+    <th>Score</th><th>Decision</th><th>Flags</th></tr></thead>
+    <tbody id="logs"><tr><td colspan="7" class="empty">loading&hellip;</td></tr></tbody></table>
+  <h2>Security alerts</h2>
+  <table><thead><tr><th>#</th><th>Time</th><th>User</th><th>Type</th></tr></thead>
+    <tbody id="alerts"><tr><td colspan="4" class="empty">loading&hellip;</td></tr></tbody></table>
+</main>
+<footer>Adaptive Zero-Trust Access Control &middot; no external assets &middot; data from /audit/*</footer>
+<script>
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const t=s=>{if(!s)return '';const d=new Date(s.replace(' ','T')+'Z');
+    return isNaN(d)?esc(s):d.toLocaleTimeString();};
+  async function j(u){try{const r=await fetch(u);return await r.json();}catch(e){return null;}}
+  async function tick(){
+    const s=await j('/audit/stats');
+    if(s){$('c-total').textContent=s.total_requests;
+      $('c-allow').textContent=(s.decisions.ALLOW||0);
+      $('c-mfa').textContent=(s.decisions.MFA_REQUIRED||0);
+      $('c-deny').textContent=(s.decisions.DENY||0);}
+    const l=await j('/audit/logs?limit=25');
+    if(l&&l.logs){$('logs').innerHTML = l.logs.length? l.logs.map(r=>{
+      let f=r.anomaly_flags; try{f=JSON.parse(f||'[]').join(', ');}catch(e){f=r.anomaly_flags||'';}
+      const sc=r.risk_score==null?'':Number(r.risk_score).toFixed(3);
+      return `<tr><td class=mono>${r.id}</td><td>${t(r.timestamp)}</td><td>${esc(r.username)}</td>
+        <td>${esc(r.endpoint)}</td><td class=mono>${sc}</td>
+        <td><span class="pill p-${esc(r.policy_decision)}">${esc(r.policy_decision)}</span></td>
+        <td class=flags>${esc(f)}</td></tr>`;}).join('')
+      : '<tr><td colspan=7 class=empty>no requests yet - run demo.sh or evaluate.py</td></tr>';}
+    const a=await j('/audit/alerts');
+    if(a&&a.alerts){$('alerts').innerHTML = a.alerts.length? a.alerts.map(r=>
+      `<tr><td class=mono>${r.id}</td><td>${t(r.timestamp)}</td>
+        <td>${esc(r.keycloak_id)}</td><td>${esc(r.alert_type)}</td></tr>`).join('')
+      : '<tr><td colspan=4 class=empty>no alerts</td></tr>';}
+  }
+  tick(); setInterval(tick,4000);
+</script>
+</body></html>"""
+
+
+@app.route('/dashboard')
+# GET /dashboard (no auth): human-readable audit dashboard for the demo.
+def dashboard():
+    return app.response_class(_DASHBOARD_HTML, mimetype='text/html')
+
+
 if __name__ == '__main__':
     start_up()
     print('Starting the web server on http://localhost:' + str(config.PORT))
