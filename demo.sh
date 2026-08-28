@@ -215,5 +215,5 @@ echo
 
 line
 echo "  Demo complete. Normal traffic was ALLOWED; attacks were challenged (MFA) or DENIED."
-echo "  See the audit trail:   curl -s $APP/audit/alerts | $PY -m json.tool"
+echo "  See the audit trail:    curl -s http://localhost:5001/audit/alerts | ../app/.venv/bin/python -m json.tool"
 line
