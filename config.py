@@ -20,7 +20,7 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model', 'isolation_forest.
 DB_PATH = os.path.join(os.path.dirname(__file__), 'ztac.db')                            # the SQLite database file
 
 # ---- Keycloak (the identity provider that issues login tokens) --------------
-KEYCLOAK_URL = 'http://localhost:8080'
+KEYCLOAK_URL = os.getenv('KEYCLOAK_URL', 'http://localhost:8080')
 KEYCLOAK_REALM = 'zerotrust'
 KEYCLOAK_CLIENT_ID = 'zt-app'
 # JWKS = the URL where Keycloak publishes its public keys, used to verify tokens.

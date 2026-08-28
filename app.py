@@ -265,4 +265,4 @@ def admin_users():
 if __name__ == '__main__':
     start_up()
     print('Starting the web server on http://localhost:' + str(config.PORT))
-    app.run(host='127.0.0.1', port=config.PORT)
+    app.run(host=os.getenv('HOST', '127.0.0.1'), port=config.PORT)

@@ -87,6 +87,20 @@ relies on each user first having an established baseline. Future work: evaluate 
 real user populations, validate on real access logs, adapt thresholds per role, and integrate
 alerts with enterprise SIEM tooling.
 
+## Continued development (post-submission)
+
+The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [`ROADMAP.md`](ROADMAP.md).
+
+- **`analyze.py`** — deeper evaluation: ROC-AUC / PR-AUC, a threshold sweep, a weight
+  grid-search, and an adversarial "low-and-slow" evasion test. Run `python analyze.py`
+  (writes `analysis_roc_pr.png`).
+- **`Dockerfile` + `docker-compose.yml`** — bring the stack up locally with
+  `docker compose up --build` (app on :5001, Keycloak on :8080). You still need to create
+  the Keycloak realm/client/user for the JWT-protected routes.
+
+Honest finding from `analyze.py`: attacks that mimic a user's normal behaviour and only trip a
+single endpoint flag currently evade detection — closing that gap is on the roadmap.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

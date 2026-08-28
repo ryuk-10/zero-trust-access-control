@@ -1,11 +1,10 @@
+.git/
 __pycache__/
 *.pyc
-.DS_Store
 .venv/
 .pytest_cache/
-*.egg-info/
-ztac.db
-ztac.db-wal
-ztac.db-shm
+*.db
+*.db-wal
+*.db-shm
 evaluation_results.csv
 analysis_roc_pr.png
