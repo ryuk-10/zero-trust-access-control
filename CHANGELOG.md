@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.0
+New features (continued development):
+- **Real geolocation on the live path** (`geoip.py`): the running app previously
+  sent `geo_lat/geo_lon = 0.0`, so the two geographic features were inert in
+  production. A dependency-free, offline country-centroid resolver now turns a
+  country hint (or a private/loopback IP) into real coordinates, wired into the PEP
+  context builder. Pluggable so a real GeoIP database can slot in later.
+- **`/metrics` endpoint**: Prometheus-style plaintext metrics (request totals by
+  decision, alert count, mean scoring latency) for scraping by Prometheus/Grafana.
+- **Unified CLI** (`zt.py`): one entry point with sub-commands `evaluate`,
+  `analyze`, `benchmark`, `train`, `test`, `serve`.
+- Added `test_geoip_resolver`.
+
 ## v1.3.0
 New features (continued development):
 - **Step-up policy** (`config.STEP_UP_ON_HIGH_SEVERITY`): a single high-severity

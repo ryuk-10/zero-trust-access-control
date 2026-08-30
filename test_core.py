@@ -74,6 +74,20 @@ def test_feature_extraction_and_flags():
         assert f in flags
 
 
+def test_geoip_resolver():
+    import geoip
+    # A country hint resolves to that country's centroid (not 0,0).
+    ru = geoip.resolve(country_hint="RU")
+    assert ru["country"] == "RU" and ru["lat"] != 0.0 and ru["lon"] != 0.0
+    # Case-insensitive.
+    assert geoip.resolve(country_hint="ie")["country"] == "IE"
+    # A private / loopback IP falls back to the service's own country.
+    assert geoip.resolve(ip="127.0.0.1")["country"] == geoip.DEFAULT_COUNTRY
+    # An unknown public IP with no hint stays unresolved (0,0).
+    unk = geoip.resolve(ip="8.8.8.8")
+    assert unk["country"] == "" and unk["lat"] == 0.0 and unk["lon"] == 0.0
+
+
 def test_synthetic_counts_and_labels():
     normal = engine.generate_normal(100)
     attacks = engine.generate_attacks(20)

@@ -12,14 +12,18 @@ toward something defensible on real data and runnable end-to-end.
 - **v1.3.0** — step-up policy (single high-severity flag forces MFA; evasion
   detection 0/400 -> 240/400, main detection 398/400 -> 400/400 at 0% FPR),
   audit dashboard at `/dashboard`, and `benchmark_models.py` (IF vs LOF vs OC-SVM).
+- **v1.4.0** — offline geolocation on the live path (`geoip.py`), Prometheus-style
+  `/metrics` endpoint, and a unified `zt.py` CLI.
 
 ## Track A — Make it real (engineering / product)
-- [ ] Real geolocation on the live path (IP -> country / lat-lon); today the live
-      app sends 0,0 so the geo features are inert in production.
+- [~] Real geolocation on the live path (v1.4.0): `geoip.py` resolves country/IP to
+      coordinates offline; still to do is a real GeoIP (MaxMind/GeoLite2) database
+      for IP-level accuracy instead of country centroids.
 - [ ] Finish the Docker stack: auto-import a Keycloak realm/client/user so the
       protected routes work with `docker compose up` and nothing else.
 - [x] Small audit dashboard (recent decisions + alerts) — done in v1.3.0 (`/dashboard`).
-- [ ] Structured logging, `/metrics`, request-level tracing, basic hardening.
+- [~] Structured logging, `/metrics`, request-level tracing, basic hardening —
+      `/metrics` added in v1.4.0; structured logging / tracing / hardening remain.
 
 ## Track B — Improve the detection (ML / research)
 - [ ] Tune the composite weights and thresholds from data instead of hand-setting

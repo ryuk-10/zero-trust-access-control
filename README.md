@@ -61,24 +61,29 @@ privilege escalation, high request rate.
 | `evaluate.py` | Reproducible offline accuracy + latency evaluation over 2,400 requests |
 | `analyze.py` | Deeper analysis: ROC/PR-AUC, threshold sweep, weight grid-search, evasion test |
 | `benchmark_models.py` | Compares Isolation Forest vs Local Outlier Factor vs One-Class SVM |
+| `geoip.py` | Offline, dependency-free country -> coordinates resolver for the live path |
+| `zt.py` | Unified CLI: `evaluate` / `analyze` / `benchmark` / `train` / `test` / `serve` |
 | `demo.sh` | Live demo: 5 normal + 5 attack requests through the running system |
 | `run.sh` / `stop.sh` | Start / stop Keycloak and the Flask app |
 | `test_core.py` | Unit tests + a reproducibility regression |
 
-The Flask app also serves a live audit dashboard at **`/dashboard`** (no external assets).
+The Flask app also serves a live audit dashboard at **`/dashboard`** and
+Prometheus-style metrics at **`/metrics`** (both no-auth, no external assets).
 
 ## Quick start
 
 ```bash
 pip install -r requirements.txt
 
-python evaluate.py     # reproducible accuracy + latency (writes evaluation_results.csv)
-pytest -q              # run the tests
+# Unified CLI (v1.4.0):
+python zt.py evaluate    # reproducible accuracy + latency (writes evaluation_results.csv)
+python zt.py analyze     # ROC/PR-AUC, threshold sweep, evasion test
+python zt.py benchmark   # Isolation Forest vs LOF vs One-Class SVM
+python zt.py test        # run the tests
+python zt.py serve       # start the service (dashboard at /dashboard, metrics at /metrics)
 
-python app.py          # start the service (trains a model on first run)
-./run.sh               # start Keycloak + Flask, then:
-./demo.sh              # live demo through the running system
-./stop.sh              # stop everything
+# Live demo through Keycloak + Flask:
+./run.sh && ./demo.sh && ./stop.sh
 ```
 
 ## Reproducibility
@@ -110,6 +115,10 @@ The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [
   effect on the false-positive rate.
 - **Audit dashboard (v1.3.0)** — `GET /dashboard`, a self-contained live view of decisions
   and alerts.
+- **Real geolocation (v1.4.0)** — `geoip.py` resolves a country hint / IP to real coordinates
+  on the live path (previously hard-coded to 0,0); pluggable for a real GeoIP database.
+- **`/metrics` + unified CLI (v1.4.0)** — Prometheus-style metrics at `GET /metrics`, and a
+  single `zt.py` entry point for every task.
 - **`benchmark_models.py` (v1.3.0)** — model comparison. Honest finding: on the features
   alone, LOF and One-Class SVM reach a higher ROC-AUC than Isolation Forest (1.000 vs 0.937);
   the shipped system closes that gap with its rule boosters. Flagged as future work.

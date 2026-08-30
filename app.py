@@ -20,6 +20,7 @@ import requests as http
 import config
 import db
 import engine
+import geoip
 from engine import extract_features, score_risk, decide
 _key_cache = {'keys': None, 'fetched_at': 0}
 _request_times = defaultdict(list)
@@ -73,7 +74,11 @@ def _build_context(user):
     device_fingerprint = hashlib.sha256(user_agent.encode()).hexdigest()[:16]
     now = datetime.utcnow()
     rates = _get_request_rates(user['keycloak_id'])
-    context = {'keycloak_id': user['keycloak_id'], 'username': user['username'], 'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1'), 'endpoint': request.path, 'http_method': request.method, 'device_fingerprint': request.headers.get('X-Device', device_fingerprint), 'geo_country': request.headers.get('X-Geo-Country', ''), 'geo_lat': 0.0, 'geo_lon': 0.0, 'request_size_bytes': int(request.headers.get('Content-Length', 0)), 'hour_of_day': int(request.headers.get('X-Demo-Hour', now.hour)), 'day_of_week': now.weekday()}
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '127.0.0.1')
+    # v1.4.0: resolve real coordinates from the country hint / IP instead of 0,0,
+    # so the geo features carry signal on the live path (see geoip.py).
+    geo = geoip.resolve(ip=ip, country_hint=request.headers.get('X-Geo-Country', ''))
+    context = {'keycloak_id': user['keycloak_id'], 'username': user['username'], 'ip_address': ip, 'endpoint': request.path, 'http_method': request.method, 'device_fingerprint': request.headers.get('X-Device', device_fingerprint), 'geo_country': geo['country'], 'geo_lat': geo['lat'], 'geo_lon': geo['lon'], 'request_size_bytes': int(request.headers.get('Content-Length', 0)), 'hour_of_day': int(request.headers.get('X-Demo-Hour', now.hour)), 'day_of_week': now.weekday()}
     context.update(rates)
     return context
 
@@ -238,6 +243,38 @@ def audit_stats():
     for row in conn.execute('SELECT policy_decision, COUNT(*) AS n FROM access_logs GROUP BY policy_decision'):
         counts[row['policy_decision']] = row['n']
     return jsonify({'total_requests': total, 'decisions': counts})
+
+@app.route('/metrics')
+# GET /metrics (no auth): Prometheus-style plaintext metrics for ops dashboards.
+# Exposes request totals by decision, alert count and average scoring latency, so
+# the service can be scraped by Prometheus / Grafana without any extra dependency.
+def metrics():
+    conn = db.get_conn()
+    total = conn.execute('SELECT COUNT(*) FROM access_logs').fetchone()[0]
+    counts = {'ALLOW': 0, 'MFA_REQUIRED': 0, 'DENY': 0}
+    for row in conn.execute('SELECT policy_decision, COUNT(*) AS n FROM access_logs GROUP BY policy_decision'):
+        if row['policy_decision'] in counts:
+            counts[row['policy_decision']] = row['n']
+    alerts = conn.execute('SELECT COUNT(*) FROM audit_alerts').fetchone()[0]
+    avg_latency = conn.execute('SELECT AVG(response_latency_ms) FROM access_logs').fetchone()[0] or 0.0
+    lines = [
+        '# HELP ztac_requests_total Total requests scored by the PEP.',
+        '# TYPE ztac_requests_total counter',
+        'ztac_requests_total %d' % total,
+        '# HELP ztac_decisions_total Requests by policy decision.',
+        '# TYPE ztac_decisions_total counter',
+        'ztac_decisions_total{decision="allow"} %d' % counts['ALLOW'],
+        'ztac_decisions_total{decision="mfa_required"} %d' % counts['MFA_REQUIRED'],
+        'ztac_decisions_total{decision="deny"} %d' % counts['DENY'],
+        '# HELP ztac_alerts_total Security alerts raised.',
+        '# TYPE ztac_alerts_total counter',
+        'ztac_alerts_total %d' % alerts,
+        '# HELP ztac_scoring_latency_ms_avg Mean per-request scoring latency.',
+        '# TYPE ztac_scoring_latency_ms_avg gauge',
+        'ztac_scoring_latency_ms_avg %.3f' % avg_latency,
+    ]
+    return app.response_class('\n'.join(lines) + '\n', mimetype='text/plain; version=0.0.4')
+
 
 @app.route('/api/documents')
 @require_auth
