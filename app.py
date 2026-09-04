@@ -10,6 +10,7 @@
 # =============================================================================
 import os
 import time
+import uuid
 import hashlib
 import functools
 from datetime import datetime
@@ -21,6 +22,7 @@ import config
 import db
 import engine
 import geoip
+import observability
 from engine import extract_features, score_risk, decide
 _key_cache = {'keys': None, 'fetched_at': 0}
 _request_times = defaultdict(list)
@@ -129,6 +131,13 @@ def require_auth(page_function):
         log_row['anomaly_flags'] = flags
         log_row['model_version'] = 'current'
         log_id = db.insert_access_log(log_row)
+        # Structured, traceable log line for this decision (JSON to stdout).
+        observability.log_request(
+            request_id=getattr(g, 'request_id', None),
+            username=user['username'], endpoint=context['endpoint'],
+            method=context['http_method'], decision=decision['action'],
+            risk_score=risk, flags=flags, latency_ms=latency_ms,
+            ip=context.get('ip_address'))
         if decision['action'] == 'ALLOW':
             db.update_user_baseline(context['keycloak_id'], context['device_fingerprint'], context['geo_country'], context['hour_of_day'])
             g.user = user
@@ -141,6 +150,37 @@ def require_auth(page_function):
             return (jsonify({'error': 'Access denied - this request looks like an attack', 'risk_score': risk, 'flags': flags, 'alert_id': log_id}), 403)
     return guarded_page
 app = Flask(__name__)
+
+
+# ---- Request tracing (v1.5.0) ----------------------------------------------
+# Give every request a unique id so it can be traced across the logs. Honour an
+# incoming X-Request-ID (e.g. from a load balancer) or mint a fresh one.
+@app.before_request
+def _assign_request_id():
+    g.request_id = request.headers.get('X-Request-ID') or uuid.uuid4().hex[:16]
+    g.start_time = time.perf_counter()
+
+
+# ---- Basic hardening (v1.5.0) ----------------------------------------------
+# Standard security headers on every response, plus the request id echoed back.
+_SECURITY_HEADERS = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'no-referrer',
+    'Cache-Control': 'no-store',
+    # Allow the dashboard's own inline script/style; block all external sources.
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
+}
+
+
+@app.after_request
+def _security_headers(response):
+    for header, value in _SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    if getattr(g, 'request_id', None):
+        response.headers['X-Request-ID'] = g.request_id
+    return response
+
 
 # On server start: create the DB tables and load the model (training one first if none exists).
 def start_up():

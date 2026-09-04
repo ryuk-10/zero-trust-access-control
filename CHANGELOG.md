@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.5.0
+New features (continued development) - observability & hardening:
+- **Structured JSON logging** (`observability.py`): every scored request is logged
+  as a one-line JSON `access_decision` event (request id, user, endpoint, decision,
+  risk score, flags, latency), ready to ship to a log aggregator. Dependency-free.
+- **Request-level tracing**: each request gets an `X-Request-ID` (honouring an
+  incoming one from a load balancer, or minting a fresh one), echoed on the
+  response and included in the structured log.
+- **Basic hardening**: standard security headers on every response
+  (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cache-Control`,
+  and a `Content-Security-Policy` that blocks external sources while allowing the
+  dashboard's own inline assets).
+- Added `test_security_headers_and_request_id`; completes the Track A
+  logging / tracing / hardening item.
+
 ## v1.4.0
 New features (continued development):
 - **Real geolocation on the live path** (`geoip.py`): the running app previously

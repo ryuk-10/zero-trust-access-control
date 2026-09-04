@@ -62,6 +62,7 @@ privilege escalation, high request rate.
 | `analyze.py` | Deeper analysis: ROC/PR-AUC, threshold sweep, weight grid-search, evasion test |
 | `benchmark_models.py` | Compares Isolation Forest vs Local Outlier Factor vs One-Class SVM |
 | `geoip.py` | Offline, dependency-free country -> coordinates resolver for the live path |
+| `observability.py` | Structured JSON logging + per-request tracing ids |
 | `zt.py` | Unified CLI: `evaluate` / `analyze` / `benchmark` / `train` / `test` / `serve` |
 | `demo.sh` | Live demo: 5 normal + 5 attack requests through the running system |
 | `run.sh` / `stop.sh` | Start / stop Keycloak and the Flask app |
@@ -119,6 +120,8 @@ The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [
   on the live path (previously hard-coded to 0,0); pluggable for a real GeoIP database.
 - **`/metrics` + unified CLI (v1.4.0)** — Prometheus-style metrics at `GET /metrics`, and a
   single `zt.py` entry point for every task.
+- **Observability & hardening (v1.5.0)** — structured JSON access logs (`observability.py`),
+  per-request `X-Request-ID` tracing, and security headers / CSP on every response.
 - **`benchmark_models.py` (v1.3.0)** — model comparison. Honest finding: on the features
   alone, LOF and One-Class SVM reach a higher ROC-AUC than Isolation Forest (1.000 vs 0.937);
   the shipped system closes that gap with its rule boosters. Flagged as future work.

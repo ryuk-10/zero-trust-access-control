@@ -74,6 +74,21 @@ def test_feature_extraction_and_flags():
         assert f in flags
 
 
+def test_security_headers_and_request_id():
+    # v1.5.0: every response carries hardening headers and a request id.
+    import app as A
+    A.start_up()
+    client = A.app.test_client()
+    r = client.get("/health")
+    assert r.headers.get("X-Content-Type-Options") == "nosniff"
+    assert r.headers.get("X-Frame-Options") == "DENY"
+    assert "Content-Security-Policy" in r.headers
+    assert r.headers.get("X-Request-ID")                      # one was minted
+    # An incoming request id is honoured (end-to-end tracing).
+    r2 = client.get("/health", headers={"X-Request-ID": "trace-abc"})
+    assert r2.headers.get("X-Request-ID") == "trace-abc"
+
+
 def test_geoip_resolver():
     import geoip
     # A country hint resolves to that country's centroid (not 0,0).
