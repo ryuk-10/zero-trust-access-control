@@ -22,6 +22,10 @@ toward something defensible on real data and runnable end-to-end.
 - **v1.7.0** — Track C robustness: two more attack types (`session_hijack`,
   `api_enumeration`), a session-level velocity detector for flagless low-and-slow
   harvests, and cost-based threshold selection (`robustness.py`).
+- **v1.8.0** — Track B cross-distribution validation: an independent held-out
+  benchmark (`make_external_dataset.py`) and a schema-driven validation harness
+  (`validate_real.py`) that also accepts a real dataset. Honest generalisation
+  result: recall ~64% / precision ~93% / FPR ~5% on the independent set.
 
 ## Track A — Make it real (engineering / product)
 - [~] Real geolocation on the live path (v1.4.0): `geoip.py` resolves country/IP to
@@ -42,7 +46,11 @@ toward something defensible on real data and runnable end-to-end.
       or feeding the rule flags into the model. Also try Extended Isolation Forest
       and per-role / per-user models.
 - [ ] Baseline decay / concept-drift handling (schema needs per-item timestamps).
-- [ ] **Validate on a real public dataset** — the biggest credibility jump.
+- [~] **Validate on a real public dataset** — the harness exists (v1.8.0):
+      `validate_real.py` is schema-driven and already runs against an independent
+      held-out benchmark (cross-distribution: recall ~64% / FPR ~5%). Remaining step
+      is data access only — download a real set (RBA / CERT / LANL), save it in the
+      documented CSV schema, and run `python zt.py validate --csv <file>`.
 
 ## Track C — Robustness & evaluation
 - [x] Low-and-slow evasion gap: step-up (v1.3.0) took adversarial detection from

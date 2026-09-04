@@ -89,6 +89,17 @@ def test_security_headers_and_request_id():
     assert r2.headers.get("X-Request-ID") == "trace-abc"
 
 
+def test_external_dataset_rows():
+    # v1.8.0: the independent benchmark generator yields well-formed rows.
+    # (Import is side-effect-free; it does not touch config paths.)
+    import make_external_dataset as mk
+    normal = mk.normal_rows(20)
+    attacks = mk.attack_rows("insider_threat", 5)
+    assert all(len(r) == 8 for r in normal + attacks)       # 8-column schema
+    assert all(r[7] == 0 for r in normal)                   # label column
+    assert all(r[7] == 1 for r in attacks)
+
+
 def test_new_attack_types():
     # v1.7.0: the extra attack generators produce valid, labelled 13-feature rows.
     for kind in ("session_hijack", "api_enumeration"):

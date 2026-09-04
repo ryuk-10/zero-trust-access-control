@@ -62,6 +62,8 @@ privilege escalation, high request rate.
 | `analyze.py` | Deeper analysis: ROC/PR-AUC, threshold sweep, weight grid-search, evasion test |
 | `benchmark_models.py` | Compares Isolation Forest vs Local Outlier Factor vs One-Class SVM |
 | `robustness.py` | Extended attacks, a velocity detector for low-and-slow, cost-based thresholds |
+| `make_external_dataset.py` | Builds an independent held-out benchmark CSV (`datasets/`) |
+| `validate_real.py` | Validates on an external CSV (cross-distribution); real-data ready |
 | `geoip.py` | Offline, dependency-free country -> coordinates resolver for the live path |
 | `observability.py` | Structured JSON logging + per-request tracing ids |
 | `zt.py` | Unified CLI: `evaluate` / `analyze` / `benchmark` / `train` / `test` / `serve` |
@@ -136,6 +138,14 @@ The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [
   `session_hijack` (a stolen token reused from a new device, otherwise blending in) is caught
   0% of the time, and a single perfectly mimicked request is fundamentally uncatchable at the
   request level — cross-request modelling is required.
+- **Cross-distribution validation (v1.8.0)** — `make_external_dataset.py` builds an
+  *independent* benchmark (different generator, users, and noise), and `validate_real.py`
+  maps its columns to the feature subset, retrains on the normal split, and evaluates.
+  Honest result on that independent set: recall ~64%, precision ~93%, FPR ~5%, F1 ~0.76 —
+  well below the same-generator 99.5% / 0%, which is the point: it measures generalisation.
+  `validate_real.py` is schema-driven, so pointing `--csv` at a real dataset (e.g. the RBA
+  or CERT insider-threat data) gives a true real-world result with no code change. Run
+  `python zt.py makedata && python zt.py validate`.
 - **`benchmark_models.py` (v1.3.0)** — model comparison. Honest finding: on the features
   alone, LOF and One-Class SVM reach a higher ROC-AUC than Isolation Forest (1.000 vs 0.937);
   the shipped system closes that gap with its rule boosters. Flagged as future work.

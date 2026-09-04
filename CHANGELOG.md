@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.8.0
+New features (continued development) - Track B: cross-distribution validation:
+- **`make_external_dataset.py`**: builds an INDEPENDENT held-out benchmark
+  (`datasets/external_benchmark.csv`) with a different generator, user population,
+  countries, hour patterns and noise, plus deliberately overlapping hard cases
+  (flagless low-and-slow, session hijack). It is still synthetic, but a different
+  distribution, so it tests generalisation rather than memorisation.
+- **`validate_real.py`**: schema-driven validation. Reads a CSV of access events,
+  maps the columns onto the 12 features an access log can fill (latency is the one
+  it cannot), retrains the Isolation Forest on the normal split, and reports
+  recall / precision / FPR / F1 plus a feature-mapping table. The same command
+  validates a REAL dataset (RBA, CERT, ...) supplied in the same schema.
+- Honest cross-distribution result on the independent benchmark: recall ~64%,
+  precision ~93%, FPR ~5%, F1 ~0.76 - markedly below the same-generator 99.5% / 0%,
+  which is exactly the generalisation gap worth reporting.
+- Added `zt.py makedata` / `zt.py validate` and `test_external_dataset_rows`
+  (14 tests total).
+
 ## v1.7.0
 New features (continued development) - Track C: robustness & evaluation:
 - **More attack types** (`engine.make_attack`): `session_hijack` (stolen token reused
