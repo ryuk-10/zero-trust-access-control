@@ -49,6 +49,10 @@ def cmd_benchmark(args):
     _run_isolated("benchmark_models")
 
 
+def cmd_robustness(args):
+    _run_isolated("robustness")
+
+
 def cmd_train(args):
     import engine
     print("Training synthetic model (%d normal + %d attack)..."
@@ -90,6 +94,7 @@ def build_parser():
     e.set_defaults(func=cmd_evaluate)
     sub.add_parser("analyze", help="ROC/PR-AUC, threshold sweep, evasion test").set_defaults(func=cmd_analyze)
     sub.add_parser("benchmark", help="compare IF vs LOF vs One-Class SVM").set_defaults(func=cmd_benchmark)
+    sub.add_parser("robustness", help="extended attacks, velocity detector, cost-based thresholds").set_defaults(func=cmd_robustness)
 
     t = sub.add_parser("train", help="(re)train the synthetic model")
     t.add_argument("--normal", type=int, default=2000, help="normal samples (default 2000)")

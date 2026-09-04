@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.7.0
+New features (continued development) - Track C: robustness & evaluation:
+- **More attack types** (`engine.make_attack`): `session_hijack` (stolen token reused
+  from a new device, otherwise blending in) and `api_enumeration` (scraping at an
+  elevated, sometimes sub-threshold rate). The default training/eval mix is unchanged,
+  so the reported headline numbers stay stable.
+- **`robustness.py`** with a `zt.py robustness` sub-command, in three parts:
+  - Extended per-type detection over the full attack suite. Honest finding:
+    `session_hijack` is caught 0% (only a new-device tell), `api_enumeration` ~54%.
+  - A session-level **velocity detector** that catches flagless low-and-slow harvests
+    the per-request engine misses entirely (100% of sustained campaigns), at a measured
+    ~13% false-positive cost on the heaviest legitimate users. A single perfectly
+    mimicked request remains fundamentally uncatchable at the request level.
+  - **Cost-based threshold selection**: sweeps the ALLOW cut and picks the threshold
+    minimising expected cost for several false-negative : false-positive ratios.
+- Added `test_new_attack_types` and `test_velocity_detector` (13 tests total).
+
 ## v1.6.0
 New features (continued development) - one-command stack:
 - **Keycloak realm auto-import** (`keycloak/realm-export.json`): the `zerotrust`

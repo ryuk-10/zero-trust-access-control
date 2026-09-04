@@ -19,6 +19,9 @@ toward something defensible on real data and runnable end-to-end.
 - **v1.6.0** — one-command stack: Keycloak realm/client/user auto-import
   (`keycloak/realm-export.json`), so `docker compose up --build` runs end-to-end
   with the JWT-protected routes working out of the box.
+- **v1.7.0** — Track C robustness: two more attack types (`session_hijack`,
+  `api_enumeration`), a session-level velocity detector for flagless low-and-slow
+  harvests, and cost-based threshold selection (`robustness.py`).
 
 ## Track A — Make it real (engineering / product)
 - [~] Real geolocation on the live path (v1.4.0): `geoip.py` resolves country/IP to
@@ -42,9 +45,13 @@ toward something defensible on real data and runnable end-to-end.
 - [ ] **Validate on a real public dataset** — the biggest credibility jump.
 
 ## Track C — Robustness & evaluation
-- [~] Low-and-slow evasion gap (v1.3.0): step-up on high-severity flags took
-      adversarial detection from 0/400 to 240/400. Remaining gap: evasions that
-      raise no flag at all (mimicking a normal endpoint) still slip through —
-      needs behavioural sequence / velocity modelling.
-- [ ] More attack types; cost-based threshold selection; calibration.
-- [~] Expand the benchmark suite and CI coverage (`benchmark_models.py` added v1.3.0).
+- [x] Low-and-slow evasion gap: step-up (v1.3.0) took adversarial detection from
+      0/400 to 240/400; the flagless residual is now addressed at the session level
+      by the velocity detector in `robustness.py` (v1.7.0), which catches sustained
+      harvests the per-request engine cannot. Documented residual: a single perfectly
+      mimicked request is fundamentally uncatchable at the request level.
+- [x] More attack types; cost-based threshold selection — done in v1.7.0
+      (`session_hijack`, `api_enumeration`; cost-based threshold sweep in `robustness.py`).
+- [x] Expand the benchmark suite (`benchmark_models.py` v1.3.0, `robustness.py` v1.7.0).
+      CI workflow is written (`.github/workflows/ci.yml`) but not yet pushed — the
+      current token lacks the `workflow` scope; enable via the GitHub UI or a scoped token.

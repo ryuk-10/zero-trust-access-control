@@ -89,6 +89,26 @@ def test_security_headers_and_request_id():
     assert r2.headers.get("X-Request-ID") == "trace-abc"
 
 
+def test_new_attack_types():
+    # v1.7.0: the extra attack generators produce valid, labelled 13-feature rows.
+    for kind in ("session_hijack", "api_enumeration"):
+        rec = engine.make_attack(kind, engine.NORMAL_USERS[0])
+        assert rec["label"] == 1
+        feats, _flags = engine.extract_features(rec)
+        assert len(feats) == 13
+
+
+def test_velocity_detector():
+    # v1.7.0: a sustained single-account request volume trips the session detector,
+    # while a short burst does not.
+    import robustness
+    det = robustness.VelocityDetector(window=40, max_requests=30)
+    flagged = any(det.observe("u1") for _ in range(50))
+    assert flagged
+    calm = robustness.VelocityDetector(window=40, max_requests=30)
+    assert not any(calm.observe("u2") for _ in range(10))
+
+
 def test_geoip_resolver():
     import geoip
     # A country hint resolves to that country's centroid (not 0,0).

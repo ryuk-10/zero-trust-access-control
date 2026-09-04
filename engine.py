@@ -173,6 +173,16 @@ def make_attack(kind, user):
         return one_row(user, hour=random.randint(8, 18), req_1m=random.randint(1, 5), req_5m=random.randint(2, 10), req_1h=random.randint(5, 30), size=800, lat=user['lat'] + 30, lon=user['lon'] + 40, new_device=1, new_loc=1, endpoint=random.choice(NORMAL_ENDPOINTS), country=random.choice(['US', 'JP', 'AU']), device='fp-travel-' + str(random.randint(1000, 9999)))
     if kind == 'data_exfiltration':
         return one_row(user, hour=random.choice([0, 1, 2, 3, 22, 23]), req_1m=random.randint(10, 30), req_5m=random.randint(30, 80), req_1h=random.randint(100, 300), size=random.randint(50000, 500000), lat=user['lat'], lon=user['lon'], bulk=1, endpoint='/api/documents/export', country=user['country'], device=random.choice(user['devices']))
+    # --- v1.7.0: additional attack types (not in the default generate_attacks mix) ---
+    if kind == 'session_hijack':
+        # A stolen session/token reused from a new device, otherwise blending in:
+        # normal endpoint, home country, business hours, low request rate. The only
+        # tell is the unfamiliar device, so this is a deliberately subtle attack.
+        return one_row(user, hour=random.randint(9, 17), req_1m=random.randint(1, 6), req_5m=random.randint(3, 15), req_1h=random.randint(10, 40), size=random.randint(200, 3000), lat=user['lat'], lon=user['lon'], new_device=1, new_loc=0, endpoint=random.choice(NORMAL_ENDPOINTS), country=user['country'], device='fp-hijack-' + str(random.randint(1000, 9999)))
+    if kind == 'api_enumeration':
+        # Scraping / enumerating endpoints at an elevated but sometimes sub-threshold
+        # rate, sometimes touching sensitive endpoints. Tests rate + endpoint signals.
+        return one_row(user, hour=random.randint(0, 23), req_1m=random.randint(25, 45), req_5m=random.randint(80, 200), req_1h=random.randint(200, 600), size=random.randint(100, 600), lat=user['lat'], lon=user['lon'], new_device=random.choice([0, 1]), endpoint=random.choice(SENSITIVE_ENDPOINTS + NORMAL_ENDPOINTS), country=user['country'], device=random.choice(user['devices']))
     return one_row(user, hour=random.randint(0, 23), req_1m=random.randint(5, 20), req_5m=random.randint(15, 50), req_1h=random.randint(30, 100), size=800, lat=user['lat'], lon=user['lon'], new_device=random.choice([0, 1]), priv=1, endpoint=random.choice(SENSITIVE_ENDPOINTS), country=random.choice(['IE', 'US', 'RU']), device='fp-priv-' + str(random.randint(1000, 9999)))
 
 # Make N random attacks of mixed types; each labelled 1.

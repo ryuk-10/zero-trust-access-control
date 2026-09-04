@@ -61,6 +61,7 @@ privilege escalation, high request rate.
 | `evaluate.py` | Reproducible offline accuracy + latency evaluation over 2,400 requests |
 | `analyze.py` | Deeper analysis: ROC/PR-AUC, threshold sweep, weight grid-search, evasion test |
 | `benchmark_models.py` | Compares Isolation Forest vs Local Outlier Factor vs One-Class SVM |
+| `robustness.py` | Extended attacks, a velocity detector for low-and-slow, cost-based thresholds |
 | `geoip.py` | Offline, dependency-free country -> coordinates resolver for the live path |
 | `observability.py` | Structured JSON logging + per-request tracing ids |
 | `zt.py` | Unified CLI: `evaluate` / `analyze` / `benchmark` / `train` / `test` / `serve` |
@@ -125,6 +126,16 @@ The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [
   single `zt.py` entry point for every task.
 - **Observability & hardening (v1.5.0)** — structured JSON access logs (`observability.py`),
   per-request `X-Request-ID` tracing, and security headers / CSP on every response.
+- **One-command Docker stack (v1.6.0)** — `docker compose up --build` auto-imports the
+  Keycloak realm/client/user, so the JWT-protected routes work with no manual setup.
+- **Robustness & evaluation (v1.7.0)** — `robustness.py`: two extra attack types
+  (`session_hijack`, `api_enumeration`), a session-level **velocity detector** that catches
+  flagless low-and-slow harvests the per-request engine cannot (at a measured false-positive
+  cost), and **cost-based threshold selection** that tunes the ALLOW cut to a chosen
+  false-negative : false-positive ratio. Run `python zt.py robustness`. Honest finding:
+  `session_hijack` (a stolen token reused from a new device, otherwise blending in) is caught
+  0% of the time, and a single perfectly mimicked request is fundamentally uncatchable at the
+  request level — cross-request modelling is required.
 - **`benchmark_models.py` (v1.3.0)** — model comparison. Honest finding: on the features
   alone, LOF and One-Class SVM reach a higher ROC-AUC than Isolation Forest (1.000 vs 0.937);
   the shipped system closes that gap with its rule boosters. Flagged as future work.
