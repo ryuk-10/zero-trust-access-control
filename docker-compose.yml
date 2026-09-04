@@ -1,15 +1,31 @@
-# One-command local stack: Flask app + Keycloak.
-# Note: you still need to create the `zerotrust` realm, `zt-app` client, and a
-# test user in Keycloak for the JWT-protected routes (see README / run.sh).
+# One-command local stack: Flask app + Keycloak, fully pre-configured.
+#
+#   docker compose up --build
+#
+# Keycloak auto-imports the `zerotrust` realm, the public `zt-app` client
+# (direct access grants + an audience mapper) and a test user `alice` /
+# `password123` from ./keycloak/realm-export.json, so the JWT-protected routes
+# work with no manual setup. The app waits until Keycloak is healthy.
+#
+# Then:  ./demo.sh   (or get a token for alice and call http://localhost:5001/...)
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    command: ["start-dev"]
+    command: ["start-dev", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
     ports:
       - "8080:8080"
+    healthcheck:
+      # Tool-free TCP check: the Keycloak image has bash but no curl.
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
   app:
     build: .
     environment:
@@ -19,4 +35,6 @@ services:
     ports:
       - "5001:5001"
     depends_on:
-      - keycloak
+      keycloak:
+        condition: service_healthy
+    restart: on-failure

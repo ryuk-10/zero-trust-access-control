@@ -16,13 +16,16 @@ toward something defensible on real data and runnable end-to-end.
   `/metrics` endpoint, and a unified `zt.py` CLI.
 - **v1.5.0** — structured JSON logging (`observability.py`), request-level tracing
   (`X-Request-ID`), and basic hardening (security headers / CSP).
+- **v1.6.0** — one-command stack: Keycloak realm/client/user auto-import
+  (`keycloak/realm-export.json`), so `docker compose up --build` runs end-to-end
+  with the JWT-protected routes working out of the box.
 
 ## Track A — Make it real (engineering / product)
 - [~] Real geolocation on the live path (v1.4.0): `geoip.py` resolves country/IP to
       coordinates offline; still to do is a real GeoIP (MaxMind/GeoLite2) database
       for IP-level accuracy instead of country centroids.
-- [ ] Finish the Docker stack: auto-import a Keycloak realm/client/user so the
-      protected routes work with `docker compose up` and nothing else.
+- [x] Finish the Docker stack: auto-import a Keycloak realm/client/user so the
+      protected routes work with `docker compose up` and nothing else — done in v1.6.0.
 - [x] Small audit dashboard (recent decisions + alerts) — done in v1.3.0 (`/dashboard`).
 - [x] Structured logging, `/metrics`, request-level tracing, basic hardening —
       done: `/metrics` (v1.4.0), JSON logging + `X-Request-ID` + security headers (v1.5.0).

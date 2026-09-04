@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.6.0
+New features (continued development) - one-command stack:
+- **Keycloak realm auto-import** (`keycloak/realm-export.json`): the `zerotrust`
+  realm, the public `zt-app` client (direct access grants + an audience mapper so
+  tokens carry `aud: zt-app`), and a test user `alice` / `password123` are created
+  automatically on startup.
+- **`docker compose up --build` now works end-to-end**: Keycloak imports the realm
+  (`start-dev --import-realm`), a tool-free TCP healthcheck gates startup, and the
+  app waits for Keycloak to be healthy before starting. The JWT-protected routes
+  work with no manual Keycloak configuration.
+- Completes the Track A Docker/Keycloak item.
+
 ## v1.5.0
 New features (continued development) - observability & hardening:
 - **Structured JSON logging** (`observability.py`): every scored request is logged

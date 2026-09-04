@@ -107,9 +107,12 @@ The as-submitted version is tagged `v1.1.0`. Ongoing work lives on `main`; see [
 - **`analyze.py`** — deeper evaluation: ROC-AUC / PR-AUC, a threshold sweep, a weight
   grid-search, and an adversarial "low-and-slow" evasion test. Run `python analyze.py`
   (writes `analysis_roc_pr.png`).
-- **`Dockerfile` + `docker-compose.yml`** — bring the stack up locally with
-  `docker compose up --build` (app on :5001, Keycloak on :8080). You still need to create
-  the Keycloak realm/client/user for the JWT-protected routes.
+- **`Dockerfile` + `docker-compose.yml` (v1.6.0)** — bring the whole stack up with a
+  single `docker compose up --build` (app on :5001, Keycloak on :8080). Keycloak
+  auto-imports the `zerotrust` realm, the `zt-app` client and a test user
+  `alice` / `password123` from `keycloak/realm-export.json`, so the JWT-protected
+  routes work out of the box with no manual setup. The app waits until Keycloak is
+  healthy, then `./demo.sh` runs straight through.
 - **Step-up policy (v1.3.0)** — `config.STEP_UP_ON_HIGH_SEVERITY` makes a single
   high-severity flag (privilege escalation / bulk export) force at least MFA. This lifted
   adversarial evasion detection from 0/400 to 240/400 and main detection to 400/400, with no
